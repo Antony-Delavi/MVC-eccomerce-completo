@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Meu Carrinho - TechStore</title>
+    
+    <meta http-equiv="Content-Security-Policy" 
+          content="default-src 'self'; 
+                   script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; 
+                   style-src 'self' 'unsafe-inline'; 
+                   img-src 'self' data: https:; 
+                   connect-src 'self';">
+</head>
+
+<body class="bg-gray-50">
+    <nav class="bg-white p-4 shadow-sm">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 onclick="window.location.href='home.html'" 
+                class="text-xl font-bold text-blue-600 cursor-pointer">TECHSTORE</h1>
+            <a href="home.html" class="text-gray-600 hover:underline text-sm font-medium">← Continuar Comprando</a>
+        </div>
+    </nav>
+
+    <main class="container mx-auto py-10 px-4">
+        <h2 class="text-3xl font-bold mb-8 text-slate-800">Seu Carrinho</h2>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-2 space-y-8">
+                
+                <div id="cartList" class="space-y-4"></div>
+
+                <div id="customerForm" class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hidden">
+                    <h3 class="text-xl font-bold mb-6 text-slate-800 flex items-center gap-2">
+                        <span>📋</span> Dados para Entrega
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Nome Completo *</label>
+                            <input type="text" id="custName" placeholder="Ex: João Silva" 
+                                class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition" required>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 uppercase mb-1">E-mail *</label>
+                            <input type="email" id="custEmail" placeholder="joao@email.com" 
+                                class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition" required>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Telefone / WhatsApp</label>
+                            <input type="tel" id="custPhone" placeholder="(00) 00000-0000" 
+                                class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Endereço de Entrega *</label>
+                            <textarea id="custAddress" placeholder="Rua, Número, Bairro, Cidade e CEP" 
+                                class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition h-24" required></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <div class="bg-white p-6 rounded-2xl shadow-sm h-fit border border-gray-100 sticky top-24">
+                    <h3 class="text-lg font-bold mb-4 text-slate-800">Resumo do Pedido</h3>
+                    <div class="flex justify-between mb-2 text-gray-500">
+                        <span>Itens</span>
+                        <span id="itemCount">0</span>
+                    </div>
+                    <div class="flex justify-between mb-2 text-gray-500">
+                        <span>Frete</span>
+                        <span class="text-green-600 font-bold">Grátis</span>
+                    </div>
+                    
+                    <div class="flex justify-between font-bold text-2xl mt-4 border-t pt-4">
+                        <span class="text-slate-800">Total</span>
+                        <span id="total" class="text-blue-600">R$ 0,00</span>
+                    </div>
+
+                    <button onclick="checkout()" id="btnCheckout"
+                        class="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl mt-6 font-black transition text-lg shadow-lg shadow-blue-100 active:scale-95">
+                        FINALIZAR COMPRA
+                    </button>
+                    
+                    <p class="text-[10px] text-gray-400 text-center mt-4 uppercase tracking-widest font-bold">
+                        Pagamento Seguro via TechStore
+                    </p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let cart = JSON.parse(localStorage.getItem('cart')) || [];
+
+        // Função de escape para prevenir XSS
+        function escapeHtml(unsafe) {
+            if (!unsafe) return '';
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function renderCart() {
+            const list = document.getElementById('cartList');
+            const form = document.getElementById('customerForm');
+
+            if (cart.length === 0) {
+                form.classList.add('hidden');
+                list.innerHTML = `
+                    <div class="bg-white p-12 rounded-2xl text-center border border-gray-100 shadow-sm">
+                        <p class="text-6xl mb-4">🛒</p>
+                        <p class="text-gray-500 text-lg font-medium">Seu carrinho está vazio.</p>
+                        <a href="home.html" class="text-blue-600 font-bold hover:underline mt-4 inline-block">
+                            Voltar para a loja →
+                        </a>
+                    </div>`;
+                updateTotals();
+                return;
+            }
+
+            form.classList.remove('hidden');
+            list.innerHTML = cart.map((item, index) => `
+                <div class="flex items-center bg-white p-5 rounded-2xl shadow-sm border border-gray-100 gap-4 group transition hover:border-blue-100">
+                    <img src="${escapeHtml(item.image_url || 'https://via.placeholder.com/80')}" 
+                         class="w-20 h-20 object-cover rounded-xl flex-shrink-0 bg-gray-50"
+                         onerror="this.src='https://via.placeholder.com/80'">
+                    
+                    <div class="flex-1 min-w-0">
+                        <h4 class="font-bold text-slate-800 text-lg truncate">${escapeHtml(item.name)}</h4>
+                        <p class="text-blue-600 font-black text-xl">R$ ${Number(item.price).toFixed(2)}</p>
+                    </div>
+
+                    <div class="flex items-center gap-3 bg-slate-50 p-1.5 rounded-xl border border-gray-100">
+                        <button onclick="updateQty(${index}, -1)" 
+                                class="w-8 h-8 flex items-center justify-center bg-white hover:bg-red-50 hover:text-red-500 rounded-lg font-bold transition shadow-sm">-</button>
+                        <span class="font-black w-6 text-center text-slate-700">${item.quantity}</span>
+                        <button onclick="updateQty(${index}, 1)" 
+                                class="w-8 h-8 flex items-center justify-center bg-white hover:bg-green-50 hover:text-green-500 rounded-lg font-bold transition shadow-sm">+</button>
+                    </div>
+
+                    <button onclick="removeItem(${index})" 
+                            class="text-gray-300 hover:text-red-500 transition duration-300 px-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </button>
+                </div>
+            `).join('');
+
+            updateTotals();
+        }
+
+        function updateQty(index, delta) {
+            if (!cart[index]) return;
+            cart[index].quantity += delta;
+            if (cart[index].quantity <= 0) {
+                removeItem(index, true);
+            } else {
+                saveAndRender();
+            }
+        }
+
+        function removeItem(index, skipConfirm = false) {
+            if (skipConfirm || confirm("Deseja remover este item do carrinho?")) {
+                cart.splice(index, 1);
+                saveAndRender();
+            }
+        }
+
+        function saveAndRender() {
+            localStorage.setItem('cart', JSON.stringify(cart));
+            renderCart();
+        }
+
+        function updateTotals() {
+            const total = cart.reduce((sum, item) => sum + (Number(item.price) * (item.quantity || 1)), 0);
+            const count = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
+            
+            document.getElementById('itemCount').innerText = count;
+            document.getElementById('total').innerText = `R$ ${total.toFixed(2)}`;
+        }
+
+        async function checkout() {
+            if (cart.length === 0) return alert("Seu carrinho está vazio!");
+
+            const customer = {
+                name: document.getElementById('custName').value.trim(),
+                email: document.getElementById('custEmail').value.trim(),
+                phone: document.getElementById('custPhone').value.trim(),
+                address: document.getElementById('custAddress').value.trim()
+            };
+
+            // Validação mais clara
+            if (!customer.name || !customer.email || !customer.address) {
+                alert("⚠️ Por favor, preencha todos os campos obrigatórios (*)");
+                return;
+            }
+
+            const total = cart.reduce((sum, item) => sum + (Number(item.price) * (item.quantity || 1)), 0);
+
+            const orderData = {
+                customer,
+                items: cart.map(i => ({
+                    id: i.id,
+                    name: i.name,
+                    price: Number(i.price),
+                    quantity: i.quantity
+                })),
+                total: Number(total.toFixed(2))
+            };
+
+            const btn = document.getElementById('btnCheckout');
+            btn.disabled = true;
+            btn.innerText = "PROCESSANDO...";
+
+            try {
+                const res = await fetch('/api/orders', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(orderData)
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    alert(`✅ Pedido realizado com sucesso!\n\nObrigado, ${customer.name.split(' ')[0]}!`);
+                    
+                    localStorage.removeItem('cart');
+                    window.location.href = 'home.html';
+                } else {
+                    const error = await res.json();
+                    alert("❌ Erro: " + (error.error || "Falha ao processar o pedido"));
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Erro de conexão com o servidor. Tente novamente.");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "FINALIZAR COMPRA";
+            }
+        }
+
+        // Inicialização
+        renderCart();
+    </script>
+</body>
+</html>

@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Painel Admin - TechStore</title>
+    
+    <meta http-equiv="Content-Security-Policy" 
+          content="default-src 'self'; 
+                   script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; 
+                   style-src 'self' 'unsafe-inline'; 
+                   img-src 'self' data: https:; 
+                   connect-src 'self';">
+</head>
+
+<body class="bg-slate-50 flex h-screen overflow-hidden">
+
+    <aside class="w-64 bg-slate-900 text-white flex flex-col shadow-2xl">
+        <div class="p-6 border-b border-slate-800">
+            <h1 class="text-2xl font-black text-blue-500 tracking-tighter cursor-pointer"
+                onclick="window.location.href='home.html'">TECHSTORE</h1>
+            <p class="text-slate-400 text-[10px] uppercase tracking-widest font-bold mt-1">SISTEMA DE GESTÃO</p>
+        </div>
+        <nav class="flex-1 p-4 space-y-2">
+            <button onclick="showTab('produtos')" id="btn-produtos"
+                class="w-full flex items-center gap-3 p-3 rounded-xl bg-blue-600 text-white font-bold transition shadow-lg shadow-blue-900/20">
+                📦 Produtos
+            </button>
+            <button onclick="showTab('vendas')" id="btn-vendas"
+                class="w-full flex items-center gap-3 p-3 rounded-xl text-slate-400 hover:bg-slate-800 font-bold transition">
+                💰 Vendas
+            </button>
+        </nav>
+        <div class="p-4 border-t border-slate-800">
+            <button onclick="logout()" 
+                    class="w-full flex items-center gap-2 text-red-400 hover:text-red-300 font-bold p-2 transition">
+                <span>⬅</span> Sair do Painel
+            </button>
+        </div>
+    </aside>
+
+    <main class="flex-1 overflow-y-auto p-8">
+
+        <section id="tab-produtos" class="block">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-3xl font-black text-slate-800">Estoque</h2>
+                <button onclick="openModal()"
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold transition shadow-lg shadow-blue-200">
+                    + Novo Produto
+                </button>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50 text-slate-400 text-[10px] uppercase border-b border-gray-100">
+                            <th class="p-4 font-black">Produto</th>
+                            <th class="p-4 font-black">Categoria</th>
+                            <th class="p-4 font-black">Preço</th>
+                            <th class="p-4 font-black text-center">Estoque</th>
+                            <th class="p-4 font-black text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="adminProductList" class="divide-y divide-gray-100"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="tab-vendas" class="hidden">
+            <h2 class="text-3xl font-black text-slate-800 mb-8">Histórico de Vendas</h2>
+            <div id="salesContainer" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <p class="p-10 text-center text-slate-400">Carregando histórico...</p>
+            </div>
+        </section>
+
+    </main>
+
+    <div id="productModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center z-50">
+        <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-black text-slate-800" id="modalTitle">Novo Produto</h3>
+                <button onclick="closeModal()" class="text-slate-300 hover:text-red-500 text-2xl font-bold">&times;</button>
+            </div>
+            <form id="productForm" class="flex flex-col gap-4">
+                <input type="hidden" id="pId">
+                <input type="text" id="pName" placeholder="Nome do Produto" 
+                       class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" required>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <input type="number" id="pPrice" step="0.01" placeholder="Preço" 
+                           class="p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" required>
+                    <input type="number" id="pStock" placeholder="Quantidade em estoque" 
+                           class="p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" required>
+                </div>
+                
+                <input type="text" id="pCategory" placeholder="Categoria (ex: Eletrônicos)" 
+                       class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Imagem do Produto</label>
+                    <input type="file" id="pImage" accept="image/*" 
+                           class="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                    <p id="currentImageText" class="text-[10px] text-slate-400 mt-1 hidden"></p>
+                </div>
+
+                <button type="submit" 
+                        class="w-full bg-slate-900 text-white font-black py-4 rounded-xl hover:bg-slate-800 transition mt-2">
+                    SALVAR PRODUTO
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div id="saleDetailModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center z-50">
+        <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden">
+            <div class="flex justify-between items-center mb-6 border-b pb-4">
+                <h3 class="text-xl font-black text-slate-800">Detalhes do Pedido</h3>
+                <button onclick="closeDetailModal()" class="text-slate-300 hover:text-red-500 text-2xl">&times;</button>
+            </div>
+            <div id="saleDetailContent" class="space-y-6"></div>
+        </div>
+    </div>
+
+    <script>
+        // ================== SEGURANÇA ==================
+        const token = localStorage.getItem('token');
+        const userRole = localStorage.getItem('userRole');
+
+        // Proteção: Redireciona se não estiver logado ou não for admin
+        if (!token || userRole !== 'admin') {
+            alert('Acesso negado! Apenas administradores podem acessar esta página.');
+            window.location.href = 'login.html';
+        }
+
+        // Função de escape para prevenir XSS
+        function escapeHtml(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function logout() {
+            localStorage.clear();
+            sessionStorage.clear();
+            window.location.href = 'login.html';
+        }
+
+        function showTab(tab) {
+            document.getElementById('tab-produtos').classList.toggle('hidden', tab !== 'produtos');
+            document.getElementById('tab-vendas').classList.toggle('hidden', tab !== 'vendas');
+            
+            const btnP = document.getElementById('btn-produtos');
+            const btnV = document.getElementById('btn-vendas');
+            
+            if (tab === 'produtos') {
+                btnP.className = "w-full flex items-center gap-3 p-3 rounded-xl bg-blue-600 text-white font-bold transition shadow-lg shadow-blue-900/20";
+                btnV.className = "w-full flex items-center gap-3 p-3 rounded-xl text-slate-400 hover:bg-slate-800 font-bold transition";
+            } else {
+                btnV.className = "w-full flex items-center gap-3 p-3 rounded-xl bg-blue-600 text-white font-bold transition shadow-lg shadow-blue-900/20";
+                btnP.className = "w-full flex items-center gap-3 p-3 rounded-xl text-slate-400 hover:bg-slate-800 font-bold transition";
+                loadSales();
+            }
+        }
+
+        async function loadAdminProducts() {
+            try {
+                const res = await fetch('/api/products', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!res.ok) throw new Error('Erro ao carregar produtos');
+
+                const products = await res.json();
+                const tbody = document.getElementById('adminProductList');
+
+                tbody.innerHTML = products.map(p => `
+                    <tr class="hover:bg-slate-50/50 transition">
+                        <td class="p-4 flex items-center gap-3">
+                            <img src="${escapeHtml(p.image_url || 'https://via.placeholder.com/40')}" 
+                                 class="w-10 h-10 rounded-lg object-cover bg-slate-100 border"
+                                 onerror="this.src='https://via.placeholder.com/40'">
+                            <span class="font-bold text-slate-700">${escapeHtml(p.name)}</span>
+                        </td>
+                        <td class="p-4 text-slate-400 text-sm">${escapeHtml(p.category || '-')}</td>
+                        <td class="p-4 font-black text-slate-800">R$ ${Number(p.price).toFixed(2)}</td>
+                        <td class="p-4 text-center">
+                            <span class="${p.stock > 0 ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'} px-2 py-1 rounded-md text-[10px] font-black uppercase">
+                                ${p.stock} em estoque
+                            </span>
+                        </td>
+                        <td class="p-4 text-center space-x-1">
+                            <button onclick='openEditModal(${JSON.stringify(p)})' 
+                                    class="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition">✏️</button>
+                            <button onclick="deleteProduct(${p.id})" 
+                                    class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition">🗑️</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error(error);
+                alert("Erro ao carregar produtos.");
+            }
+        }
+
+        function openModal() {
+            document.getElementById('productForm').reset();
+            document.getElementById('pId').value = '';
+            document.getElementById('modalTitle').innerText = 'Novo Produto';
+            document.getElementById('currentImageText').classList.add('hidden');
+            document.getElementById('productModal').classList.replace('hidden', 'flex');
+        }
+
+        function openEditModal(p) {
+            document.getElementById('pId').value = p.id;
+            document.getElementById('pName').value = p.name;
+            document.getElementById('pPrice').value = p.price;
+            document.getElementById('pStock').value = p.stock;
+            document.getElementById('pCategory').value = p.category || '';
+            
+            const currentImgText = document.getElementById('currentImageText');
+            if (p.image_url) {
+                currentImgText.innerText = `Imagem atual: ${p.image_url.split('/').pop()}`;
+                currentImgText.classList.remove('hidden');
+            } else {
+                currentImgText.classList.add('hidden');
+            }
+            
+            document.getElementById('pImage').value = ''; 
+            document.getElementById('modalTitle').innerText = 'Editar Produto';
+            document.getElementById('productModal').classList.replace('hidden', 'flex');
+        }
+
+        function closeModal() {
+            document.getElementById('productModal').classList.replace('flex', 'hidden');
+        }
+
+        document.getElementById('productForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('pId').value;
+            
+            const formData = new FormData();
+            formData.append('name', document.getElementById('pName').value.trim());
+            formData.append('price', document.getElementById('pPrice').value);
+            formData.append('stock', document.getElementById('pStock').value);
+            formData.append('category', document.getElementById('pCategory').value.trim());
+            
+            const imageFile = document.getElementById('pImage').files[0];
+            if (imageFile) formData.append('image', imageFile);
+
+            try {
+                const res = await fetch(id ? `/api/products/${id}` : '/api/products', {
+                    method: id ? 'PUT' : 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+                
+                if (res.ok) {
+                    closeModal();
+                    loadAdminProducts();
+                    alert(id ? 'Produto atualizado com sucesso!' : 'Produto cadastrado com sucesso!');
+                } else {
+                    const err = await res.json();
+                    alert("Erro: " + (err.error || 'Falha ao salvar produto'));
+                }
+            } catch (error) {
+                alert("Erro de conexão com o servidor.");
+            }
+        };
+
+        async function deleteProduct(id) {
+            if (!confirm("Tem certeza que deseja apagar este produto?")) return;
+
+            try {
+                const res = await fetch(`/api/products/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (res.ok) {
+                    loadAdminProducts();
+                    alert("Produto removido com sucesso!");
+                } else {
+                    const err = await res.json();
+                    alert("Erro: " + (err.error || 'Não foi possível excluir'));
+                }
+            } catch (error) {
+                alert("Erro ao excluir produto.");
+            }
+        }
+
+        async function loadSales() {
+            const container = document.getElementById('salesContainer');
+            container.innerHTML = `<p class="p-10 text-center text-slate-400">Carregando histórico...</p>`;
+
+            try {
+                const res = await fetch('/api/orders', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!res.ok) throw new Error('Erro ao carregar vendas');
+
+                const sales = await res.json();
+
+                if (sales.length === 0) {
+                    container.innerHTML = `<p class="p-20 text-center text-slate-400 font-bold">Nenhuma venda encontrada.</p>`;
+                    return;
+                }
+
+                let html = `
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 text-slate-400 text-[10px] uppercase border-b border-gray-100">
+                                <th class="p-4 font-black">Data/Hora</th>
+                                <th class="p-4 font-black">Cliente</th>
+                                <th class="p-4 font-black">Total</th>
+                                <th class="p-4 font-black text-center">Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">`;
+
+                sales.forEach(sale => {
+                    const customer = JSON.parse(sale.customerData || '{}');
+                    html += `
+                        <tr class="hover:bg-slate-50/50 transition">
+                            <td class="p-4 text-xs text-slate-500 font-medium">
+                                ${new Date(sale.createdAt).toLocaleString('pt-BR')}
+                            </td>
+                            <td class="p-4">
+                                <p class="font-bold text-slate-800">${escapeHtml(customer.name || 'N/A')}</p>
+                                <p class="text-[10px] text-slate-400">${escapeHtml(customer.email || '')}</p>
+                            </td>
+                            <td class="p-4 font-black text-blue-600">R$ ${Number(sale.total).toFixed(2)}</td>
+                            <td class="p-4 text-center">
+                                <button onclick='showSaleDetails(${JSON.stringify(sale)})' 
+                                    class="bg-slate-100 text-slate-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-slate-200 transition">
+                                    Ver Detalhes
+                                </button>
+                            </td>
+                        </tr>`;
+                });
+
+                html += `</tbody></table>`;
+                container.innerHTML = html;
+
+            } catch (err) {
+                console.error(err);
+                container.innerHTML = `<p class="p-10 text-center font-bold text-red-500">Erro ao carregar vendas.</p>`;
+            }
+        }
+
+        function showSaleDetails(sale) {
+            const customer = JSON.parse(sale.customerData || '{}');
+            const items = JSON.parse(sale.items || '[]');
+            const content = document.getElementById('saleDetailContent');
+
+            let html = `
+                <div class="grid grid-cols-2 gap-6 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                    <div>
+                        <h4 class="text-[10px] font-black text-slate-400 uppercase mb-2">Cliente</h4>
+                        <p class="text-sm font-bold text-slate-800">${escapeHtml(customer.name || 'N/A')}</p>
+                        <p class="text-sm text-slate-600">${escapeHtml(customer.email || 'N/A')}</p>
+                        <p class="text-sm text-slate-600">${escapeHtml(customer.phone || 'Não informado')}</p>
+                    </div>
+                    <div>
+                        <h4 class="text-[10px] font-black text-slate-400 uppercase mb-2">Endereço</h4>
+                        <p class="text-sm text-slate-600 italic">${escapeHtml(customer.address || 'Não informado')}</p>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 class="text-[10px] font-black text-slate-400 uppercase mb-3">Itens do Pedido</h4>
+                    <div class="space-y-2">`;
+
+            items.forEach(item => {
+                html += `
+                    <div class="flex justify-between items-center text-sm bg-white p-2 border-b border-slate-50">
+                        <span class="text-slate-700"><b class="text-blue-600">${item.quantity}x</b> ${escapeHtml(item.name)}</span>
+                        <span class="font-bold text-slate-800">R$ ${(item.price * item.quantity).toFixed(2)}</span>
+                    </div>`;
+            });
+
+            html += `</div></div>
+                <div class="flex justify-between items-center pt-4 border-t">
+                    <span class="text-lg font-black text-slate-800">Total Pago:</span>
+                    <span class="text-2xl font-black text-blue-600">R$ ${Number(sale.total).toFixed(2)}</span>
+                </div>`;
+
+            content.innerHTML = html;
+            document.getElementById('saleDetailModal').classList.replace('hidden', 'flex');
+        }
+
+        function closeDetailModal() {
+            document.getElementById('saleDetailModal').classList.replace('flex', 'hidden');
+        }
+
+        // Inicialização
+        loadAdminProducts();
+    </script>
+</body>
+</html>
